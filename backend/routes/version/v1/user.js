@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 // import  User from '../../../models/user.js';
-import {handleGetAllUsers ,handleDeleteUserById ,handleCreateUser ,handleUpdateUserById ,handleGetUserById, handlelogin} from '../../../controller/user.js';
+import {handleChangePassword, handleGetAllUsers ,handleDeleteUserById ,handleCreateUser ,handleUpdateUserById ,handleGetUserById, handlelogin} from '../../../controller/user.js';
 import {get_required_roles} from "../../../middleware/dependency.js";
 import { verifytoken } from '../../../middleware/auth.js';
 
@@ -60,6 +60,13 @@ router.get(
   verifytoken,
   get_required_roles(["admin"]),
   handleGetUserById
+);
+
+router.put(
+  "/change-password",
+  verifytoken,
+  get_required_roles(["admin"]),
+  handleChangePassword
 );
 
 

@@ -1,30 +1,35 @@
-import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import {
-  User,
-  Mail,
-  ShieldCheck,
-  Lock,
-  Pencil,
-  ArrowLeft,
-  Trash2,
-  X,
-} from "lucide-react";
+  useForm,
+} from "react-hook-form";
 
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  zodResolver,
+} from "@hookform/resolvers/zod";
+
+import {
+  useNavigate,
+} from "react-router-dom";
 
 import {
   profileSchema,
+  changePasswordSchema,
   type ProfileFormData,
+  type ChangePasswordFormData,
 } from "../../schema/auth";
 
 import {
   useAdminProfile,
   useUpdateAdminProfile,
+  useChangePassword,
   useDeleteAdminProfile,
 } from "../../hooks/auth";
+
+import authHelper from "../../utils/auth";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -35,320 +40,343 @@ const Profile = () => {
   const [showDeleteModal, setShowDeleteModal] =
     useState(false);
 
+  /* =======================================================
+     CURRENT USER
+  ======================================================= */
+
+  const user = authHelper.getUser();
+
+  /* =======================================================
+     PROFILE QUERY
+  ======================================================= */
+
   const {
     data,
     isLoading,
     isError,
+    error,
   } = useAdminProfile();
 
-  const updateProfile =
+  /* =======================================================
+     MUTATIONS
+  ======================================================= */
+
+  const updateMutation =
     useUpdateAdminProfile();
 
-  const deleteProfile =
+  const passwordMutation =
+    useChangePassword();
+
+  const deleteMutation =
     useDeleteAdminProfile();
 
-  const profile = data?.data;
+  /* =======================================================
+     PROFILE FORM
+  ======================================================= */
 
   const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
+    register: registerProfile,
+    handleSubmit: handleProfileSubmit,
+    reset: resetProfile,
+    formState: {
+      errors: profileErrors,
+    },
   } = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema),
+    resolver:
+      zodResolver(profileSchema),
+
+    defaultValues: {
+      name: "",
+      email: "",
+      age: 18,
+    },
   });
 
+  /* =======================================================
+     PASSWORD FORM
+  ======================================================= */
+
+  const {
+    register: registerPassword,
+    handleSubmit: handlePasswordSubmit,
+    reset: resetPassword,
+    formState: {
+      errors: passwordErrors,
+    },
+  } = useForm<ChangePasswordFormData>({
+    resolver:
+      zodResolver(
+        changePasswordSchema
+      ),
+
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  /* =======================================================
+     LOAD PROFILE
+  ======================================================= */
+
   useEffect(() => {
-    if (profile) {
-      reset({
-        name: profile.name,
-        email: profile.email,
-        age: profile.age,
+    if (!data?.data) {
+      return;
+    }
+
+    resetProfile({
+      name: data.data.name,
+      email: data.data.email,
+      age: data.data.age,
+    });
+  }, [
+    data,
+    resetProfile,
+  ]);
+
+  /* =======================================================
+     NO USER
+  ======================================================= */
+
+  useEffect(() => {
+    if (!user) {
+      navigate("/login", {
+        replace: true,
       });
     }
-  }, [profile, reset]);
+  }, [
+    user,
+    navigate,
+  ]);
 
-  /* =========================================
-     LOADING
-  ========================================= */
+  /* =======================================================
+     UPDATE PROFILE
+  ======================================================= */
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <p className="text-sm text-gray-500">
-          Loading profile...
-        </p>
-      </div>
-    );
-  }
-
-  /* =========================================
-     ERROR
-  ========================================= */
-
-  if (isError || !profile) {
-    return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <div className="text-center">
-          <p className="text-sm text-red-500">
-            Unable to load profile.
-          </p>
-
-          <Link
-            to="/admin"
-            className="mt-4 inline-block text-sm text-blue-600 hover:underline"
-          >
-            Back to Dashboard
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  /* =========================================
-     SUBMIT
-  ========================================= */
-
-  const onSubmit = (
-    formData: ProfileFormData
+  const onProfileSubmit = (
+    values: ProfileFormData
   ) => {
-    updateProfile.mutate(
+    if (!user?.id) {
+      return;
+    }
+
+    updateMutation.mutate({
+      adminId: user.id,
+
+      data: {
+        name: values.name,
+        email: values.email,
+        age: values.age,
+      },
+    });
+  };
+
+  /* =======================================================
+     PROFILE UPDATE SUCCESS
+  ======================================================= */
+
+  useEffect(() => {
+    if (
+      updateMutation.isSuccess &&
+      updateMutation.data?.data
+    ) {
+      setIsEditing(false);
+
+      resetProfile({
+        name:
+          updateMutation.data.data.name,
+
+        email:
+          updateMutation.data.data.email,
+
+        age:
+          updateMutation.data.data.age,
+      });
+    }
+  }, [
+    updateMutation.isSuccess,
+    updateMutation.data,
+    resetProfile,
+  ]);
+
+  /* =======================================================
+     CHANGE PASSWORD
+  ======================================================= */
+
+  const onPasswordSubmit = (
+    values: ChangePasswordFormData
+  ) => {
+    passwordMutation.mutate(
       {
-        adminId: profile.id,
-        data: formData,
+        currentPassword:
+          values.currentPassword,
+
+        newPassword:
+          values.newPassword,
       },
       {
         onSuccess: () => {
-          setIsEditing(false);
+          resetPassword();
         },
       }
     );
   };
 
-  /* =========================================
-     DELETE
-  ========================================= */
+  /* =======================================================
+     DELETE ACCOUNT
+  ======================================================= */
 
-  const handleDeleteProfile = () => {
-    deleteProfile.mutate(profile.id, {
-      onSuccess: () => {
-        navigate("/login", {
-          replace: true,
-        });
-      },
-    });
+  const handleDelete = () => {
+    if (!user?.id) {
+      return;
+    }
+
+    deleteMutation.mutate(
+      user.id,
+      {
+        onSuccess: () => {
+          setShowDeleteModal(false);
+
+          navigate("/login", {
+            replace: true,
+          });
+        },
+      }
+    );
   };
 
-  const initial = profile.name
-    .charAt(0)
-    .toUpperCase();
+  /* =======================================================
+     NO USER
+  ======================================================= */
+
+  if (!user) {
+    return null;
+  }
+
+  /* =======================================================
+     LOADING
+  ======================================================= */
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <p className="text-sm text-gray-500">
+            Loading profile...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* =======================================================
+     ERROR
+  ======================================================= */
+
+  if (isError) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-6">
+          <h2 className="font-semibold text-red-700">
+            Failed to load profile
+          </h2>
+
+          <p className="mt-2 text-sm text-red-600">
+            {error instanceof Error
+              ? error.message
+              : "Something went wrong."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  const profile = data?.data;
+
+  if (!profile) {
+    return (
+      <div className="p-6">
+        <div className="rounded-xl border border-gray-200 bg-white p-6">
+          <p className="text-sm text-gray-500">
+            Profile not found.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="mx-auto max-w-5xl">
-      {/* =====================================
-          HEADER
-      ===================================== */}
+    <>
+      <div className="mx-auto max-w-4xl space-y-6">
 
-      <div className="mb-6">
-        <Link
-          to="/admin"
-          className="mb-4 inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900"
-        >
-          <ArrowLeft size={16} />
-          Back to Dashboard
-        </Link>
+        {/* =================================================
+            PAGE HEADER
+        ================================================= */}
 
-        <h1 className="text-2xl font-bold text-gray-900">
-          Profile
-        </h1>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Admin Profile
+          </h1>
 
-        <p className="mt-1 text-sm text-gray-500">
-          Manage your administrator account.
-        </p>
-      </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Manage your admin account.
+          </p>
+        </div>
 
-      {/* =====================================
-          PROFILE HEADER
-      ===================================== */}
+        {/* =================================================
+            PERSONAL INFORMATION
+        ================================================= */}
 
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="h-32 bg-blue-600" />
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
 
-        <div className="px-6 pb-6">
-          <div className="-mt-12 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex items-end gap-4">
-              {/* Avatar */}
-              <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-white bg-blue-100 text-3xl font-bold text-blue-600 shadow-sm">
-                {initial}
-              </div>
+          <div className="flex items-center justify-between border-b border-gray-200 p-6">
 
-              <div className="pb-1">
-                <h2 className="text-xl font-bold text-gray-900">
-                  {profile.name}
-                </h2>
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Personal Information
+              </h2>
 
-                <p className="text-sm text-gray-500">
-                  {profile.email}
-                </p>
-              </div>
+              <p className="mt-1 text-sm text-gray-500">
+                Your account information.
+              </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (!isEditing) {
-                  reset({
+            {!isEditing && (
+              <button
+                type="button"
+                onClick={() => {
+                  updateMutation.reset();
+
+                  resetProfile({
                     name: profile.name,
                     email: profile.email,
                     age: profile.age,
                   });
-                }
 
-                setIsEditing(
-                  (value) => !value
-                );
-              }}
-              className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
-            >
-              {isEditing ? (
-                <X size={16} />
-              ) : (
-                <Pencil size={16} />
-              )}
+                  setIsEditing(true);
+                }}
+                className="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-gray-800"
+              >
+                Edit
+              </button>
+            )}
 
-              {isEditing
-                ? "Cancel"
-                : "Edit Profile"}
-            </button>
           </div>
-        </div>
-      </div>
 
-      {/* =====================================
-          INFORMATION
-      ===================================== */}
+          <div className="p-6">
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">
-                Account Information
-              </h2>
+            {isEditing ? (
 
-              <p className="mt-1 text-sm text-gray-500">
-                Your administrator account details.
-              </p>
-            </div>
-
-            {!isEditing ? (
-              <div className="space-y-5">
-                {/* Name */}
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg bg-gray-100 p-2">
-                    <User
-                      size={18}
-                      className="text-gray-600"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                      Name
-                    </p>
-
-                    <p className="mt-1 text-sm font-medium text-gray-900">
-                      {profile.name}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Email */}
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg bg-gray-100 p-2">
-                    <Mail
-                      size={18}
-                      className="text-gray-600"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                      Email
-                    </p>
-
-                    <p className="mt-1 text-sm font-medium text-gray-900">
-                      {profile.email}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Age */}
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg bg-gray-100 p-2">
-                    <User
-                      size={18}
-                      className="text-gray-600"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                      Age
-                    </p>
-
-                    <p className="mt-1 text-sm font-medium text-gray-900">
-                      {profile.age ?? "Not provided"}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Role */}
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg bg-gray-100 p-2">
-                    <ShieldCheck
-                      size={18}
-                      className="text-gray-600"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                      Role
-                    </p>
-
-                    <span className="mt-1 inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold capitalize text-blue-600">
-                      {profile.role}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Account ID */}
-                <div className="flex items-start gap-4">
-                  <div className="rounded-lg bg-gray-100 p-2">
-                    <User
-                      size={18}
-                      className="text-gray-600"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                      Account ID
-                    </p>
-
-                    <p className="mt-1 text-sm font-medium text-gray-900">
-                      {profile.id}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
               <form
-                onSubmit={handleSubmit(onSubmit)}
+                onSubmit={handleProfileSubmit(
+                  onProfileSubmit
+                )}
                 className="space-y-5"
               >
-                {/* Name */}
+
+                {/* NAME */}
+
                 <div>
                   <label
                     htmlFor="name"
@@ -360,18 +388,22 @@ const Profile = () => {
                   <input
                     id="name"
                     type="text"
-                    {...register("name")}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    {...registerProfile("name")}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
 
-                  {errors.name && (
+                  {profileErrors.name && (
                     <p className="mt-1 text-sm text-red-500">
-                      {errors.name.message}
+                      {
+                        profileErrors.name
+                          .message
+                      }
                     </p>
                   )}
                 </div>
 
-                {/* Email */}
+                {/* EMAIL */}
+
                 <div>
                   <label
                     htmlFor="email"
@@ -383,18 +415,22 @@ const Profile = () => {
                   <input
                     id="email"
                     type="email"
-                    {...register("email")}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    {...registerProfile("email")}
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
 
-                  {errors.email && (
+                  {profileErrors.email && (
                     <p className="mt-1 text-sm text-red-500">
-                      {errors.email.message}
+                      {
+                        profileErrors.email
+                          .message
+                      }
                     </p>
                   )}
                 </div>
 
-                {/* Age */}
+                {/* AGE */}
+
                 <div>
                   <label
                     htmlFor="age"
@@ -406,167 +442,404 @@ const Profile = () => {
                   <input
                     id="age"
                     type="number"
-                    {...register("age", {
+                    {...registerProfile("age", {
                       valueAsNumber: true,
                     })}
-                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
                   />
 
-                  {errors.age && (
+                  {profileErrors.age && (
                     <p className="mt-1 text-sm text-red-500">
-                      {errors.age.message}
+                      {
+                        profileErrors.age
+                          .message
+                      }
                     </p>
                   )}
                 </div>
 
-                {/* Buttons */}
-                <div className="flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      reset({
-                        name: profile.name,
-                        email: profile.email,
-                        age: profile.age,
-                      });
+                {/* ERROR */}
 
-                      setIsEditing(false);
-                    }}
-                    className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                  >
-                    Cancel
-                  </button>
+                {updateMutation.isError && (
+                  <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                    {updateMutation.error instanceof Error
+                      ? updateMutation.error.message
+                      : "Failed to update profile."}
+                  </div>
+                )}
+
+                {/* SUCCESS */}
+
+                {updateMutation.isSuccess && (
+                  <div className="rounded-lg bg-green-50 p-3 text-sm text-green-600">
+                    Profile updated successfully.
+                  </div>
+                )}
+
+                {/* BUTTONS */}
+
+                <div className="flex gap-3">
 
                   <button
                     type="submit"
                     disabled={
-                      updateProfile.isPending
+                      updateMutation.isPending
                     }
-                    className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    {updateProfile.isPending
-                      ? "Saving..."
-                      : "Save Changes"}
+                    {updateMutation.isPending
+                      ? "Updating..."
+                      : "Update Profile"}
                   </button>
+
+                  <button
+                    type="button"
+                    disabled={
+                      updateMutation.isPending
+                    }
+                    onClick={() => {
+                      setIsEditing(false);
+
+                      updateMutation.reset();
+
+                      resetProfile({
+                        name: profile.name,
+                        email: profile.email,
+                        age: profile.age,
+                      });
+                    }}
+                    className="rounded-lg border border-gray-300 px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+
                 </div>
+
               </form>
-            )}
-          </div>
-        </div>
 
-        {/* ===================================
-            SECURITY
-        =================================== */}
+            ) : (
 
-        <div>
-          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="rounded-lg bg-blue-50 p-2">
-                <Lock
-                  size={19}
-                  className="text-blue-600"
-                />
-              </div>
+              <div className="space-y-6">
 
-              <div>
-                <h2 className="font-semibold text-gray-900">
-                  Security
-                </h2>
-
-                <p className="text-xs text-gray-500">
-                  Manage account security
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Link
-                to="/admin/profile/change-password"
-                className="block rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
-              >
-                <p className="text-sm font-medium text-gray-900">
-                  Change Password
-                </p>
-
-                <p className="mt-1 text-xs text-gray-500">
-                  Update your account password.
-                </p>
-              </Link>
-
-              {/* Delete */}
-              <button
-                type="button"
-                onClick={() =>
-                  setShowDeleteModal(true)
-                }
-                className="flex w-full items-center gap-3 rounded-lg border border-red-200 p-4 text-left hover:bg-red-50"
-              >
-                <Trash2
-                  size={18}
-                  className="text-red-500"
-                />
+                {/* NAME */}
 
                 <div>
-                  <p className="text-sm font-medium text-red-600">
-                    Delete Account
+                  <p className="text-sm text-gray-500">
+                    Name
                   </p>
 
-                  <p className="mt-1 text-xs text-gray-500">
-                    Permanently delete your admin
-                    account.
+                  <p className="mt-1 font-medium text-gray-900">
+                    {profile.name}
                   </p>
                 </div>
-              </button>
-            </div>
+
+                {/* EMAIL */}
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Email
+                  </p>
+
+                  <p className="mt-1 font-medium text-gray-900">
+                    {profile.email}
+                  </p>
+                </div>
+
+                {/* AGE */}
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Age
+                  </p>
+
+                  <p className="mt-1 font-medium text-gray-900">
+                    {profile.age}
+                  </p>
+                </div>
+
+                {/* ROLE */}
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Role
+                  </p>
+
+                  <span className="mt-1 inline-block rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+                    {profile.role}
+                  </span>
+                </div>
+
+                {/* ID */}
+
+                <div>
+                  <p className="text-sm text-gray-500">
+                    Account ID
+                  </p>
+
+                  <p className="mt-1 break-all font-mono text-xs text-gray-600">
+                    {profile.id}
+                  </p>
+                </div>
+
+              </div>
+            )}
+
           </div>
         </div>
+
+        {/* =================================================
+            CHANGE PASSWORD
+        ================================================= */}
+
+        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+
+          <div className="border-b border-gray-200 p-6">
+
+            <h2 className="text-lg font-semibold text-gray-900">
+              Change Password
+            </h2>
+
+            <p className="mt-1 text-sm text-gray-500">
+              Update your account password.
+            </p>
+
+          </div>
+
+          <div className="p-6">
+
+            <form
+              onSubmit={handlePasswordSubmit(
+                onPasswordSubmit
+              )}
+              className="space-y-5"
+            >
+
+              {/* CURRENT PASSWORD */}
+
+              <div>
+                <label
+                  htmlFor="currentPassword"
+                  className="mb-2 block text-sm font-medium text-gray-700"
+                >
+                  Current Password
+                </label>
+
+                <input
+                  id="currentPassword"
+                  type="password"
+                  autoComplete="current-password"
+                  {...registerPassword(
+                    "currentPassword"
+                  )}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+
+                {passwordErrors.currentPassword && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {
+                      passwordErrors
+                        .currentPassword
+                        .message
+                    }
+                  </p>
+                )}
+              </div>
+
+              {/* NEW PASSWORD */}
+
+              <div>
+                <label
+                  htmlFor="newPassword"
+                  className="mb-2 block text-sm font-medium text-gray-700"
+                >
+                  New Password
+                </label>
+
+                <input
+                  id="newPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  {...registerPassword(
+                    "newPassword"
+                  )}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+
+                {passwordErrors.newPassword && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {
+                      passwordErrors
+                        .newPassword
+                        .message
+                    }
+                  </p>
+                )}
+              </div>
+
+              {/* CONFIRM PASSWORD */}
+
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="mb-2 block text-sm font-medium text-gray-700"
+                >
+                  Confirm New Password
+                </label>
+
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  {...registerPassword(
+                    "confirmPassword"
+                  )}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
+
+                {passwordErrors.confirmPassword && (
+                  <p className="mt-1 text-sm text-red-500">
+                    {
+                      passwordErrors
+                        .confirmPassword
+                        .message
+                    }
+                  </p>
+                )}
+              </div>
+
+              {/* SERVER ERROR */}
+
+              {passwordMutation.isError && (
+                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                  {passwordMutation.error instanceof Error
+                    ? passwordMutation.error.message
+                    : "Failed to change password."}
+                </div>
+              )}
+
+              {/* SUCCESS */}
+
+              {passwordMutation.isSuccess && (
+                <div className="rounded-lg bg-green-50 p-3 text-sm text-green-600">
+                  Password changed successfully.
+                </div>
+              )}
+
+              {/* BUTTON */}
+
+              <div className="flex justify-end">
+
+                <button
+                  type="submit"
+                  disabled={
+                    passwordMutation.isPending
+                  }
+                  className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {passwordMutation.isPending
+                    ? "Changing Password..."
+                    : "Change Password"}
+                </button>
+
+              </div>
+
+            </form>
+
+          </div>
+        </div>
+
+        {/* =================================================
+            DELETE ACCOUNT
+        ================================================= */}
+
+        <div className="rounded-xl border border-red-200 bg-white shadow-sm">
+
+          <div className="p-6">
+
+            <h2 className="text-lg font-semibold text-red-600">
+              Delete Account
+            </h2>
+
+            <p className="mt-2 text-sm text-gray-500">
+              Permanently delete your admin account.
+            </p>
+
+            <button
+              type="button"
+              onClick={() =>
+                setShowDeleteModal(true)
+              }
+              className="mt-4 rounded-lg border border-red-300 px-4 py-2.5 text-sm font-medium text-red-600 transition hover:bg-red-50"
+            >
+              Delete Account
+            </button>
+
+          </div>
+        </div>
+
       </div>
 
-      {/* =====================================
+      {/* =====================================================
           DELETE MODAL
-      ===================================== */}
+      ===================================================== */}
 
       {showDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+
           <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+
             <h2 className="text-lg font-semibold text-gray-900">
               Delete Account?
             </h2>
 
-            <p className="mt-2 text-sm text-gray-500">
-              This action cannot be undone. Your
-              administrator account will be permanently
-              deleted.
+            <p className="mt-2 text-sm leading-6 text-gray-500">
+              Are you sure you want to permanently
+              delete your admin account? This action
+              cannot be undone.
             </p>
 
+            {deleteMutation.isError && (
+              <div className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                {deleteMutation.error instanceof Error
+                  ? deleteMutation.error.message
+                  : "Failed to delete account."}
+              </div>
+            )}
+
             <div className="mt-6 flex justify-end gap-3">
+
               <button
                 type="button"
+                disabled={
+                  deleteMutation.isPending
+                }
                 onClick={() =>
                   setShowDeleteModal(false)
                 }
-                className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700"
+                className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
               >
                 Cancel
               </button>
 
               <button
                 type="button"
-                onClick={handleDeleteProfile}
                 disabled={
-                  deleteProfile.isPending
+                  deleteMutation.isPending
                 }
-                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+                onClick={handleDelete}
+                className="rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {deleteProfile.isPending
+                {deleteMutation.isPending
                   ? "Deleting..."
-                  : "Delete Account"}
+                  : "Yes, Delete"}
               </button>
+
             </div>
+
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

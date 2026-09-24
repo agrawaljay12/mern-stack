@@ -141,40 +141,56 @@ const handlelogin = async (req,res)=>{
 }
 
 // update user by id
-const handleUpdateUserById = async (req,res) =>{
-  try{
+const handleUpdateUserById = async (req, res) => {
+  try {
     const id = req.params.id;
     const body = req.body;
-    
-    if(!id){
-             return res.status(400).json({error:"User Id is required"});
+
+    if (!id) {
+      return res.status(400).json({
+        error: "User Id is required",
+      });
     }
 
-    update_data ={};
+    const existuser = await user.findById(id);
 
-    
-    const existuser = await user.findOne({_id:id});
-    
     if (!existuser) {
-            return res.status(404).json({ error: "User not found" });
-        }
+      return res.status(404).json({
+        error: "User not found",
+      });
+    }
 
-    const result = await User.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    
-    if(!result){
-        return res.status(400).json({error:"No data is update"});
+    const result = await user.findByIdAndUpdate(
+      id,
+      {
+        name: body.name,
+        email: body.email,
+        age: body.age,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!result) {
+      return res.status(400).json({
+        error: "No data is updated",
+      });
     }
 
     return res.status(200).json({
-        message: "User updated successfully", 
-        data: result
+      message: "User updated successfully",
+      data: result,
     });
+  } catch (error) {
+    console.error("UPDATE USER ERROR:", error);
 
-  }   
-  catch (error) {
-        return res.status(500).json({message:error.message});
-    }
-}
+    return res.status(500).json({
+      message: error.message,
+    });
+  }
+};
 
 // get particular user by id
 const handleGetUserById = async (req,res) =>{
@@ -233,4 +249,147 @@ const handleGetUserById = async (req,res) =>{
         return res.status(500).json({message:error.message});
       }  
  }
-export{handleGetAllUsers ,handleDeleteUserById,handleCreateUser ,handleUpdateUserById,handleGetUserById, handlelogin};
+
+ const handleChangePassword =
+  async (req, res) => {
+    try {
+      /*
+       * req.user comes from verifytoken.
+       *
+       * Your JWT contains:
+       *
+       * {
+       *   id,
+       *   name,
+       *   email,
+       *   age,
+       *   role
+       * }
+       */
+
+      if (!req.user?.id) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Authentication required",
+        });
+      }
+
+      const {
+        currentPassword,
+        newPassword,
+      } = req.body;
+
+      if (
+        !currentPassword ||
+        !newPassword
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Current password and new password are required",
+        });
+      }
+
+      if (
+        newPassword.length < 6
+      ) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "New password must be at least 6 characters",
+        });
+      }
+
+      /*
+       * Get user with password.
+       */
+
+      const user =
+        await User.findById(
+          req.user.id
+        );
+
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "User not found",
+        });
+      }
+
+      /*
+       * Check current password.
+       */
+
+      const passwordMatches =
+        await bcrypt.compare(
+          currentPassword,
+          user.password
+        );
+
+      if (!passwordMatches) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Current password is incorrect",
+        });
+      }
+
+      /*
+       * Don't allow same password.
+       */
+
+      const samePassword =
+        await bcrypt.compare(
+          newPassword,
+          user.password
+        );
+
+      if (samePassword) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "New password must be different from your current password",
+        });
+      }
+
+      /*
+       * Hash new password.
+       */
+
+      const hashedPassword =
+        await bcrypt.hash(
+          newPassword,
+          10
+        );
+
+      /*
+       * Save password.
+       */
+
+      user.password =
+        hashedPassword;
+
+      await user.save();
+
+      return res.status(200).json({
+        success: true,
+        message:
+          "Password changed successfully",
+        data: null,
+      });
+    } catch (error) {
+      console.error(
+        "CHANGE PASSWORD ERROR:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Internal Server Error",
+      });
+    }
+  };
+export{handleGetAllUsers ,handleDeleteUserById,handleCreateUser ,handleUpdateUserById,handleGetUserById, handlelogin,handleChangePassword};

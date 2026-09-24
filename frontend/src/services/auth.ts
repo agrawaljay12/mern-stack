@@ -1,108 +1,105 @@
 import apiClient from "../config/api/axios";
+
 import authHelper from "../utils/auth";
 
 import type {
   LoginRequest,
   LoginResponse,
-  RefreshTokenRequest,
-  RefreshTokenResponse,
   ProfileResponse,
   UpdateProfileRequest,
   UpdateProfileResponse,
   DeleteProfileResponse,
+  ChangePasswordRequest,
+  ChangePasswordResponse,
 } from "../types/auth";
 
-/* =========================================
+/* =========================================================
    LOGIN
-========================================= */
+========================================================= */
 
 export const login = async (
   data: LoginRequest
-): Promise<LoginResponse> => {
-  const response = await apiClient.post<LoginResponse>(
-    "/users/login",
-    data
+) => {
+  const response =
+    await apiClient.post<LoginResponse>(
+      "/auth/login",
+      data
+    );
+
+  authHelper.setAuth(
+    response.data.data
   );
 
-  authHelper.setAuth(response.data.data);
-
   return response.data;
 };
 
-/* =========================================
-   REFRESH TOKEN
-========================================= */
+/* =========================================================
+   GET PROFILE
+========================================================= */
 
-export const refreshToken = async (
-  data: RefreshTokenRequest
-): Promise<RefreshTokenResponse> => {
-  const response =
-    await apiClient.post<RefreshTokenResponse>(
-      "/users/refresh",
-      data
-    );
-
-  return response.data;
-};
-
-/* =========================================
-   LOGOUT
-========================================= */
-
-export const logout = (): void => {
-  authHelper.clearAuth();
-};
-
-/* =========================================
-   ADMIN PROFILE
-========================================= */
-
-/**
- * Get admin profile
- *
- * GET /users/fetch/:id
- */
-export const getAdminProfile = async (
-  adminId: number
-): Promise<ProfileResponse> => {
+export const getProfile = async (
+  userId: string
+) => {
   const response =
     await apiClient.get<ProfileResponse>(
-      `/users/fetch/${adminId}`
+      `/auth/fetch/${userId}`
     );
 
   return response.data;
 };
 
-/**
- * Update admin profile
- *
- * PUT /users/update/:id
- */
-export const updateAdminProfile = async (
-  adminId: number,
+/* =========================================================
+   UPDATE PROFILE
+========================================================= */
+
+export const updateProfile = async (
+  userId: string,
   data: UpdateProfileRequest
-): Promise<UpdateProfileResponse> => {
+) => {
   const response =
     await apiClient.put<UpdateProfileResponse>(
-      `/users/update/${adminId}`,
+      `/auth/update/${userId}`,
       data
     );
 
   return response.data;
 };
 
-/**
- * Delete admin account
- *
- * DELETE /users/delete/:id
- */
-export const deleteAdminProfile = async (
-  adminId: number
-): Promise<DeleteProfileResponse> => {
+/* =========================================================
+   CHANGE PASSWORD
+========================================================= */
+
+export const changePassword = async (
+  data: ChangePasswordRequest
+) => {
   const response =
-    await apiClient.delete<DeleteProfileResponse>(
-      `/users/delete/${adminId}`
+    await apiClient.put<ChangePasswordResponse>(
+      "/auth/change-password",
+      data
     );
 
   return response.data;
+};
+
+/* =========================================================
+   DELETE PROFILE
+========================================================= */
+
+export const deleteProfile = async (
+  userId: string
+) => {
+  const response =
+    await apiClient.delete<DeleteProfileResponse>(
+      `/users/delete/${userId}`
+    );
+
+  return response.data;
+};
+
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+export const logout = () => {
+  authHelper.clearAuth();
 };

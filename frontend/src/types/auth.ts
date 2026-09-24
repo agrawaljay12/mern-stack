@@ -1,77 +1,107 @@
 export type UserRole = "admin" | "user";
 
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  age: number;
+  role: UserRole;
+}
+
+/* =========================================================
+   LOGIN
+========================================================= */
+
 export interface LoginRequest {
   email: string;
   password: string;
 }
 
-export interface User {
-  id: number;
+export interface LoginUser {
+  id: string;
   name: string;
   email: string;
-  age?: number;
+  age: number;
   role: UserRole;
 }
 
 export interface LoginData {
   access_token: string;
-  refresh_token: string;
-  token_type: string;
-  user: User;
+  result: LoginUser;
+  token_type: "Bearer";
 }
 
 export interface LoginResponse {
-  status: number;
+  success?: boolean;
   message: string;
   data: LoginData;
 }
+
+/* =========================================================
+   REFRESH TOKEN
+========================================================= */
 
 export interface RefreshTokenRequest {
   refresh_token: string;
 }
 
 export interface RefreshTokenResponse {
-  status: number;
+  success?: boolean;
   message: string;
   data: {
     access_token: string;
     refresh_token?: string;
-    token_type: string;
+    token_type: "Bearer";
   };
 }
 
-/* =========================================
-   ADMIN PROFILE
-========================================= */
+/* =========================================================
+   PROFILE
+========================================================= */
 
-export interface AdminProfile {
-  id: number;
+export interface Profile {
+  id: string;
   name: string;
   email: string;
-  age?: number;
-  role: "admin";
+  age: number;
+  role: UserRole;
 }
 
 export interface ProfileResponse {
-  status: number;
+  success?: boolean;
   message: string;
-  data: AdminProfile;
+  data: Profile;
 }
 
 export interface UpdateProfileRequest {
   name: string;
   email: string;
-  age?: number;
+  age: number;
 }
 
 export interface UpdateProfileResponse {
-  status: number;
+  success?: boolean;
   message: string;
-  data: AdminProfile;
+  data: Profile;
 }
 
 export interface DeleteProfileResponse {
-  status: number;
+  success?: boolean;
+  message: string;
+  data: Profile | null;
+}
+
+/* =========================================================
+   CHANGE PASSWORD
+========================================================= */
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+  success?: boolean;
   message: string;
   data: null;
 }

@@ -13,7 +13,7 @@ const registerroutes = (app) =>{
     app.use("/api/v1/blogs", blogRoutes);
 
     // http://localhost:8000/api/v1/like/
-    app.use("/api/v1/blogs", likeRoutes);
+    app.use("/api/v1/like", likeRoutes);
 
     // http://localhost:8000/api/v1/comment/
     app.use("/api/v1/comments", commentRoutes);

@@ -13,7 +13,6 @@ import BlogDetails from "./pages/blogdetail";
 
 import Login from "./pages/auth/login";
 
-
 // ================================
 // Admin Pages
 // ================================
@@ -24,13 +23,11 @@ import CreateBlog from "./pages/admin/createblog";
 import EditBlog from "./pages/admin/editblog";
 import Profile from "./pages/admin/profile";
 
-
 // ================================
 // Admin Layout
 // ================================
 
 import AdminLayout from "./layout/adminlayout";
-
 
 // ================================
 // Route Protection
@@ -38,7 +35,6 @@ import AdminLayout from "./layout/adminlayout";
 
 import ProtectedRoute from "./router/protected";
 import RoleRoute from "./router/roleroute";
-
 
 const App = () => {
   return (
@@ -64,13 +60,13 @@ const App = () => {
           element={<Login />}
         />
 
-
         {/* ==================================
             PROTECTED ROUTES
         ================================== */}
 
-        <Route element={<ProtectedRoute />}>
-
+        <Route
+          element={<ProtectedRoute />}
+        >
           {/* ==================================
               ADMIN ROLE
           ================================== */}
@@ -82,21 +78,26 @@ const App = () => {
               />
             }
           >
-
             {/* ==================================
                 ADMIN LAYOUT
             ================================== */}
 
-            <Route element={<AdminLayout />}>
+            <Route
+              element={<AdminLayout />}
+            >
 
-              {/* Dashboard */}
+              {/* ==============================
+                  DASHBOARD
+              ============================== */}
 
               <Route
                 path="/admin"
                 element={<Dashboard />}
               />
 
-              {/* Blog Management */}
+              {/* ==============================
+                  BLOG MANAGEMENT
+              ============================== */}
 
               <Route
                 path="/admin/blogs"
@@ -113,7 +114,9 @@ const App = () => {
                 element={<EditBlog />}
               />
 
-              {/* Admin Profile */}
+              {/* ==============================
+                  ADMIN PROFILE
+              ============================== */}
 
               <Route
                 path="/admin/profile"
@@ -121,10 +124,36 @@ const App = () => {
               />
 
             </Route>
-
           </Route>
-
         </Route>
+
+        {/* ==================================
+            404 FALLBACK
+        ================================== */}
+
+        <Route
+          path="*"
+          element={
+            <div className="flex min-h-screen items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <h1 className="text-5xl font-bold text-gray-900">
+                  404
+                </h1>
+
+                <p className="mt-2 text-gray-500">
+                  Page not found
+                </p>
+
+                <a
+                  href="/"
+                  className="mt-5 inline-block rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  Go Home
+                </a>
+              </div>
+            </div>
+          }
+        />
 
       </Routes>
     </BrowserRouter>

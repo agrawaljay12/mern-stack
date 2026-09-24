@@ -29,6 +29,9 @@ const generateUniqueSlug = async (title, blogId = null) => {
 
 export const createBlog = async (req, res) => {
   try {
+    console.log("CREATE BLOG BODY:", req.body);
+    console.log("CREATE BLOG USER:", req.user);
+
     const {
       title,
       description,
@@ -38,22 +41,54 @@ export const createBlog = async (req, res) => {
       published = true,
     } = req.body;
 
-    if (!title?.trim() || !description?.trim()) {
-      return res.status(400).json({
+    // Check authentication
+    if (!req.user) {
+      return res.status(401).json({
         success: false,
-        message: "Title and description are required",
+        message: "Authentication required",
       });
     }
 
-    if (mediaType !== "none" && mediaUrl && !isValidUrl(mediaUrl)) {
+    // Check admin
+    if (req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Admin access required",
+      });
+    }
+
+    // Validate required fields
+    if (!title?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Title is required",
+      });
+    }
+
+    if (!description?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Description is required",
+      });
+    }
+
+    // Validate media URL
+    if (
+      mediaType &&
+      mediaType !== "none" &&
+      mediaUrl &&
+      !isValidUrl(mediaUrl)
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid media URL",
       });
     }
 
+    // Generate slug
     const slug = await generateUniqueSlug(title);
 
+    // Create blog
     const blog = await Blog.create({
       title: title.trim(),
       slug,
@@ -65,25 +100,36 @@ export const createBlog = async (req, res) => {
         thumbnail: thumbnail || "",
       },
 
-      author: req.user._id,
-      published,
+      author: req.user.id,
+
+      published:
+        typeof published === "boolean"
+          ? published
+          : true,
     });
 
-    const populatedBlog = await Blog.findById(blog._id)
-      .populate("author", "name email")
-      .lean();
+    // Populate author
+    const populatedBlog =
+      await Blog.findById(blog._id)
+        .populate("author", "name email")
+        .lean();
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Blog created successfully",
       data: populatedBlog,
     });
-  } catch (error) {
-    console.error(error);
 
-    res.status(500).json({
+  } catch (error) {
+    console.error("CREATE BLOG ERROR:", error);
+
+    return res.status(500).json({
       success: false,
       message: "Failed to create blog",
+      error:
+        process.env.NODE_ENV === "development"
+          ? error.message
+          : undefined,
     });
   }
 };

@@ -81,7 +81,7 @@ export const updateBlog = async (
   data: BlogFormData
 ): Promise<Blog> => {
   const response = await api.put<ApiResponse<Blog>>(
-    `/blogs/${id}`,
+    `/blogs/admin/${id}`,
     data
   );
 

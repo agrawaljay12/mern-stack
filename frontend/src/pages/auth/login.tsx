@@ -1,11 +1,8 @@
 import { useForm } from "react-hook-form";
-import {
-  zodResolver,
-} from "@hookform/resolvers/zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
   Link,
-  useLocation,
   useNavigate,
 } from "react-router-dom";
 
@@ -20,7 +17,6 @@ import authHelper from "../../utils/auth";
 
 const Login = () => {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const loginMutation = useLogin();
 
@@ -40,24 +36,7 @@ const Login = () => {
     },
   });
 
-  const getDefaultRoute = (
-    role: "admin" | "user",
-  ) => {
-    switch (role) {
-      case "admin":
-        return "/admin";
-
-      case "user":
-        return "/user/collections";
-
-      default:
-        return "/";
-    }
-  };
-
-  const onSubmit = (
-    data: LoginFormData,
-  ) => {
+  const onSubmit = (data: LoginFormData) => {
     loginMutation.mutate(data, {
       onSuccess: () => {
         const user = authHelper.getUser();
@@ -66,18 +45,21 @@ const Login = () => {
           return;
         }
 
-        const from =
-          location.state?.from?.pathname;
-
-        navigate(
-          from ??
-            getDefaultRoute(user.role),
-          {
-            replace: true,
-          },
-        );
-
         reset();
+
+        // Admin goes directly to admin dashboard
+        if (user.role === "admin") {
+          navigate("/admin", {
+            replace: true,
+          });
+
+          return;
+        }
+
+        // Normal users
+        navigate("/", {
+          replace: true,
+        });
       },
     });
   };
@@ -85,7 +67,6 @@ const Login = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md">
-
         <div className="rounded-2xl bg-white p-8 shadow-sm">
 
           <div className="mb-8 text-center">
@@ -104,17 +85,10 @@ const Login = () => {
             </div>
           )}
 
-          {loginMutation.isSuccess && (
-            <div className="mb-5 rounded-lg bg-green-50 p-3 text-sm text-green-600">
-              Login successful.
-            </div>
-          )}
-
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-5"
           >
-
             {/* Email */}
             <div>
               <label
@@ -183,7 +157,6 @@ const Login = () => {
                 ? "Logging in..."
                 : "Login"}
             </button>
-
           </form>
 
           <div className="mt-6 text-center">
@@ -199,7 +172,6 @@ const Login = () => {
           </div>
 
         </div>
-
       </div>
     </div>
   );

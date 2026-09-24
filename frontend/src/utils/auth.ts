@@ -1,60 +1,148 @@
-import type { LoginData, User } from "../types/auth";
+import type {
+  LoginData,
+  LoginUser,
+  User,
+} from "../types/auth";
 
 const ACCESS_TOKEN_KEY = "access_token";
-const REFRESH_TOKEN_KEY = "refresh_token";
-const USER_KEY = "auth_user";
+const AUTH_USER_KEY = "auth_user";
 const GUEST_TOKEN_KEY = "guest_token";
 
 const authHelper = {
-  setAuth(auth: LoginData): void {
-    localStorage.setItem(ACCESS_TOKEN_KEY, auth.access_token);
-    localStorage.setItem(REFRESH_TOKEN_KEY, auth.refresh_token);
-    localStorage.setItem(USER_KEY, JSON.stringify(auth.user));
-  },
+  /* =======================================================
+     ACCESS TOKEN
+  ======================================================= */
 
   getAccessToken(): string | null {
-    return localStorage.getItem(ACCESS_TOKEN_KEY);
+    return localStorage.getItem(
+      ACCESS_TOKEN_KEY
+    );
   },
 
-  getRefreshToken(): string | null {
-    return localStorage.getItem(REFRESH_TOKEN_KEY);
+  setAccessToken(token: string): void {
+    localStorage.setItem(
+      ACCESS_TOKEN_KEY,
+      token
+    );
   },
 
-  getUser(): User | null {
-    const user = localStorage.getItem(USER_KEY);
+  /* =======================================================
+     USER
+  ======================================================= */
+
+  getUser(): LoginUser | User | null {
+    const user = localStorage.getItem(
+      AUTH_USER_KEY
+    );
 
     if (!user) {
       return null;
     }
 
     try {
-      return JSON.parse(user) as User;
+      return JSON.parse(user);
     } catch {
-      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(
+        AUTH_USER_KEY
+      );
+
       return null;
     }
   },
 
-  isAuthenticated(): boolean {
-    return Boolean(this.getAccessToken());
+  setUser(user: LoginUser): void {
+    localStorage.setItem(
+      AUTH_USER_KEY,
+      JSON.stringify(user)
+    );
   },
+
+  updateUser(user: User): void {
+    localStorage.setItem(
+      AUTH_USER_KEY,
+      JSON.stringify(user)
+    );
+  },
+
+  /* =======================================================
+     AUTH
+  ======================================================= */
+
+  setAuth(auth: LoginData): void {
+    localStorage.setItem(
+      ACCESS_TOKEN_KEY,
+      auth.access_token
+    );
+
+    localStorage.setItem(
+      AUTH_USER_KEY,
+      JSON.stringify(auth.result)
+    );
+  },
+
+  isAuthenticated(): boolean {
+    const token =
+      localStorage.getItem(
+        ACCESS_TOKEN_KEY
+      );
+
+    const user =
+      localStorage.getItem(
+        AUTH_USER_KEY
+      );
+
+    return Boolean(token && user);
+  },
+
+  isAdmin(): boolean {
+    const user = this.getUser();
+
+    return user?.role === "admin";
+  },
+
+  /* =======================================================
+     CLEAR AUTH
+  ======================================================= */
 
   clearAuth(): void {
-    localStorage.removeItem(ACCESS_TOKEN_KEY);
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(
+      ACCESS_TOKEN_KEY
+    );
+
+    localStorage.removeItem(
+      AUTH_USER_KEY
+    );
   },
 
+  /* =======================================================
+     GUEST TOKEN
+  ======================================================= */
+
   getGuestToken(): string | null {
-    return localStorage.getItem(GUEST_TOKEN_KEY);
+    return localStorage.getItem(
+      GUEST_TOKEN_KEY
+    );
   },
 
   setGuestToken(token: string): void {
-    localStorage.setItem(GUEST_TOKEN_KEY, token);
+    localStorage.setItem(
+      GUEST_TOKEN_KEY,
+      token
+    );
   },
 
   clearGuestToken(): void {
-    localStorage.removeItem(GUEST_TOKEN_KEY);
+    localStorage.removeItem(
+      GUEST_TOKEN_KEY
+    );
+  },
+
+  /* =======================================================
+     LOGOUT
+  ======================================================= */
+
+  logout(): void {
+    this.clearAuth();
   },
 };
 
