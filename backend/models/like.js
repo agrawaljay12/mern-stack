@@ -8,25 +8,21 @@ const likeSchema = new mongoose.Schema(
       required: true,
     },
 
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+    guestToken: {
+      type: String,
       required: true,
+      index: true,
     },
   },
   {
     timestamps: true,
+    versionKey: false,
   }
 );
 
 likeSchema.index(
-  {
-    blog: 1,
-    user: 1,
-  },
-  {
-    unique: true,
-  }
+  { blog: 1, guestToken: 1 },
+  { unique: true }
 );
 
 export default mongoose.model("Like", likeSchema);

@@ -1,200 +1,498 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import {
+  useEffect,
+  useState,
+} from "react";
 
 import {
-  deleteBlog,
-  getAdminBlogs,
+  Link,
+  useParams,
+} from "react-router-dom";
+
+import {
+  addComment,
+  deleteComment,
+  getBlogBySlug,
+  toggleLike,
 } from "../services/blog";
 
-import type { Blog } from "../types/blog";
+import type {
+  Blog,
+} from "../types/blog";
 
-const AdminBlogs = () => {
-  const [blogs, setBlogs] = useState<Blog[]>(
-    []
+import BlogMedia from "../component/blog/blogmedia";
+
+import CommentForm from "../component/blog/commentform";
+
+import CommentList from "../component/blog/commentlist";
+
+import ShareButton from "../component/blog/sharebutton";
+
+const BlogDetails = () => {
+  const {
+    slug,
+  } = useParams<{
+    slug: string;
+  }>();
+
+  const [
+    blog,
+    setBlog,
+  ] = useState<Blog | null>(
+    null
   );
 
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
 
-  const loadBlogs = async () => {
-    try {
-      setLoading(true);
+  const [
+    error,
+    setError,
+  ] = useState("");
 
-      const data = await getAdminBlogs();
+  const [
+    likeLoading,
+    setLikeLoading,
+  ] = useState(false);
 
-      setBlogs(data);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [
+    commentLoading,
+    setCommentLoading,
+  ] = useState(false);
+
+  const [
+    deleteLoading,
+    setDeleteLoading,
+  ] = useState<string | null>(
+    null
+  );
+
+  const loadBlog =
+    async () => {
+      if (!slug) {
+        return;
+      }
+
+      try {
+        setLoading(true);
+
+        setError("");
+
+        const data =
+          await getBlogBySlug(
+            slug
+          );
+
+        setBlog(data);
+      } catch (error) {
+        console.error(
+          error
+        );
+
+        setError(
+          "Blog not found."
+        );
+      } finally {
+        setLoading(
+          false
+        );
+      }
+    };
 
   useEffect(() => {
-    loadBlogs();
-  }, []);
+    loadBlog();
+  }, [slug]);
 
-  const handleDelete = async (
-    id: string
-  ) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this blog?"
-    );
+  /* =======================================================
+     LIKE
+  ======================================================= */
 
-    if (!confirmed) return;
+  const handleLike =
+    async () => {
+      if (
+        !blog ||
+        likeLoading
+      ) {
+        return;
+      }
 
-    try {
-      await deleteBlog(id);
+      try {
+        setLikeLoading(
+          true
+        );
 
-      setBlogs((previous) =>
-        previous.filter(
-          (blog) => blog._id !== id
-        )
-      );
-    } catch (error) {
-      console.error(error);
-    }
-  };
+        const result =
+          await toggleLike(
+            blog._id
+          );
+
+        setBlog(
+          (previous) =>
+            previous
+              ? {
+                  ...previous,
+
+                  likedByUser:
+                    result.liked,
+
+                  likesCount:
+                    result.likesCount,
+                }
+              : previous
+        );
+      } catch (error) {
+        console.error(
+          error
+        );
+      } finally {
+        setLikeLoading(
+          false
+        );
+      }
+    };
+
+  /* =======================================================
+     COMMENT
+  ======================================================= */
+
+  const handleComment =
+    async (
+      name: string,
+      text: string
+    ) => {
+      if (!blog) {
+        return;
+      }
+
+      try {
+        setCommentLoading(
+          true
+        );
+
+        const comment =
+          await addComment(
+            blog._id,
+            name,
+            text
+          );
+
+        setBlog(
+          (previous) =>
+            previous
+              ? {
+                  ...previous,
+
+                  comments: [
+                    comment,
+                    ...(previous.comments ||
+                      []),
+                  ],
+
+                  commentsCount:
+                    previous.commentsCount +
+                    1,
+                }
+              : previous
+        );
+      } catch (error) {
+        console.error(
+          error
+        );
+
+        throw error;
+      } finally {
+        setCommentLoading(
+          false
+        );
+      }
+    };
+
+  /* =======================================================
+     DELETE COMMENT
+  ======================================================= */
+
+  const handleDeleteComment =
+    async (
+      commentId: string
+    ) => {
+      if (
+        deleteLoading
+      ) {
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          "Delete this comment?"
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      try {
+        setDeleteLoading(
+          commentId
+        );
+
+        await deleteComment(
+          commentId
+        );
+
+        setBlog(
+          (previous) =>
+            previous
+              ? {
+                  ...previous,
+
+                  comments:
+                    previous.comments?.filter(
+                      (
+                        comment
+                      ) =>
+                        comment._id !==
+                        commentId
+                    ),
+
+                  commentsCount:
+                    Math.max(
+                      previous.commentsCount -
+                        1,
+                      0
+                    ),
+                }
+              : previous
+        );
+      } catch (error) {
+        console.error(
+          error
+        );
+      } finally {
+        setDeleteLoading(
+          null
+        );
+      }
+    };
+
+  /* =======================================================
+     LOADING
+  ======================================================= */
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-100">
-        Loading...
-      </div>
+      <main className="flex min-h-screen items-center justify-center bg-slate-50">
+        <div className="text-slate-500">
+          Loading article...
+        </div>
+      </main>
+    );
+  }
+
+  /* =======================================================
+     ERROR
+  ======================================================= */
+
+  if (
+    error ||
+    !blog
+  ) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+
+        <div className="text-center">
+
+          <h1 className="text-4xl font-black text-slate-900">
+            404
+          </h1>
+
+          <p className="mt-2 text-slate-500">
+            Blog not found.
+          </p>
+
+          <Link
+            to="/"
+            className="mt-6 inline-block rounded-lg bg-slate-900 px-5 py-3 font-semibold text-white"
+          >
+            Back to home
+          </Link>
+
+        </div>
+
+      </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 px-4 py-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <h1 className="text-3xl font-black text-slate-900">
-              Manage Blogs
-            </h1>
+    <main className="min-h-screen bg-slate-50">
+
+      {/* =================================================
+          ARTICLE
+      ================================================= */}
+
+      <article className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+
+        {/* BACK */}
+
+        <Link
+          to="/"
+          className="mb-8 inline-flex text-sm font-semibold text-slate-600 hover:text-slate-900"
+        >
+          ← Back to articles
+        </Link>
+
+        {/* HEADER */}
+
+        <header>
+
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
+
+            <span>
+              {blog.author?.name ||
+                "Admin"}
+            </span>
+
+            <span>•</span>
+
+            <time
+              dateTime={
+                blog.createdAt
+              }
+            >
+              {new Date(
+                blog.createdAt
+              ).toLocaleDateString()}
+            </time>
+
+          </div>
+
+          <h1 className="mt-4 text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
+            {blog.title}
+          </h1>
+
+        </header>
+
+        {/* MEDIA */}
+
+        {blog.media?.url && (
+          <div className="mt-8 overflow-hidden rounded-2xl bg-white shadow-sm">
+
+            <BlogMedia
+              media={
+                blog.media
+              }
+              className="max-h-[600px] w-full object-contain"
+            />
+
+          </div>
+        )}
+
+        {/* DESCRIPTION */}
+
+        <div className="mt-8 rounded-2xl bg-white p-6 shadow-sm sm:p-8">
+
+          <p className="whitespace-pre-wrap text-lg leading-8 text-slate-700">
+            {
+              blog.description
+            }
+          </p>
+
+        </div>
+
+        {/* ACTIONS */}
+
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+
+          <button
+            type="button"
+            onClick={
+              handleLike
+            }
+            disabled={
+              likeLoading
+            }
+            className={`rounded-xl px-5 py-2.5 font-semibold transition ${
+              blog.likedByUser
+                ? "bg-red-100 text-red-700"
+                : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+            } disabled:opacity-50`}
+          >
+            {blog.likedByUser
+              ? "♥ Liked"
+              : "♡ Like"}
+
+            {" "}
+
+            {blog.likesCount}
+          </button>
+
+          <ShareButton
+            title={
+              blog.title
+            }
+          />
+
+        </div>
+
+        {/* =================================================
+            COMMENTS
+        ================================================= */}
+
+        <section className="mt-12">
+
+          <div className="mb-6">
+
+            <h2 className="text-2xl font-black text-slate-900">
+              Comments
+            </h2>
 
             <p className="mt-1 text-slate-500">
-              Create, edit and manage your
-              blog posts.
+              {blog.commentsCount}{" "}
+              comments
             </p>
+
           </div>
 
-          <Link
-            to="/admin/blogs/create"
-            className="rounded-xl bg-slate-900 px-5 py-3 text-center font-semibold text-white hover:bg-slate-700"
-          >
-            + Create Blog
-          </Link>
-        </div>
+          {/* ADD COMMENT */}
 
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px]">
-              <thead>
-                <tr className="border-b bg-slate-50 text-left text-sm text-slate-600">
-                  <th className="px-6 py-4">
-                    Title
-                  </th>
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
 
-                  <th className="px-6 py-4">
-                    Status
-                  </th>
+            <CommentForm
+              onSubmit={
+                handleComment
+              }
+              loading={
+                commentLoading
+              }
+            />
 
-                  <th className="px-6 py-4">
-                    Likes
-                  </th>
-
-                  <th className="px-6 py-4">
-                    Comments
-                  </th>
-
-                  <th className="px-6 py-4">
-                    Date
-                  </th>
-
-                  <th className="px-6 py-4">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {blogs.map((blog) => (
-                  <tr
-                    key={blog._id}
-                    className="border-b last:border-0"
-                  >
-                    <td className="max-w-xs px-6 py-4 font-semibold">
-                      <span className="line-clamp-2">
-                        {blog.title}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          blog.published
-                            ? "bg-green-100 text-green-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {blog.published
-                          ? "Published"
-                          : "Draft"}
-                      </span>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      {blog.likesCount}
-                    </td>
-
-                    <td className="px-6 py-4">
-                      {blog.commentsCount}
-                    </td>
-
-                    <td className="px-6 py-4 text-sm text-slate-500">
-                      {new Date(
-                        blog.createdAt
-                      ).toLocaleDateString()}
-                    </td>
-
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <Link
-                          to={`/admin/blogs/${blog._id}/edit`}
-                          className="rounded-lg bg-slate-100 px-3 py-2 text-sm font-medium hover:bg-slate-200"
-                        >
-                          Edit
-                        </Link>
-
-                        <button
-                          type="button"
-                          onClick={() =>
-                            handleDelete(
-                              blog._id
-                            )
-                          }
-                          className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-100"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {blogs.length === 0 && (
-              <div className="p-12 text-center text-slate-500">
-                No blogs found.
-              </div>
-            )}
           </div>
-        </div>
-      </div>
+
+          {/* COMMENT LIST */}
+
+          <div className="mt-8">
+
+            <CommentList
+              comments={
+                blog.comments ||
+                []
+              }
+              onDelete={
+                handleDeleteComment
+              }
+              deleteLoading={
+                deleteLoading
+              }
+            />
+
+          </div>
+
+        </section>
+
+      </article>
+
     </main>
   );
 };
 
-export default AdminBlogs;
+export default BlogDetails;

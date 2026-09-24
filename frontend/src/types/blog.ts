@@ -22,14 +22,18 @@ export interface Comment {
   blog: string;
   name: string;
   text: string;
+  canDelete?: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface Blog {
   _id: string;
+
   title: string;
+
   slug: string;
+
   description: string;
 
   media: BlogMedia;
@@ -37,6 +41,7 @@ export interface Blog {
   author: BlogAuthor;
 
   likesCount: number;
+
   commentsCount: number;
 
   published: boolean;
@@ -46,6 +51,7 @@ export interface Blog {
   comments?: Comment[];
 
   createdAt: string;
+
   updatedAt: string;
 }
 

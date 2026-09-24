@@ -1,3 +1,5 @@
+import mongoose from "mongoose";
+
 import Blog from "../models/blog.js";
 import Like from "../models/like.js";
 
@@ -5,7 +7,24 @@ export const toggleLike = async (req, res) => {
   try {
     const { blogId } = req.params;
 
-    const blog = await Blog.findById(blogId);
+    if (!mongoose.Types.ObjectId.isValid(blogId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid blog id",
+      });
+    }
+
+    if (!req.guestToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Guest identity is required",
+      });
+    }
+
+    const blog = await Blog.findOne({
+      _id: blogId,
+      published: true,
+    });
 
     if (!blog) {
       return res.status(404).json({
@@ -15,17 +34,20 @@ export const toggleLike = async (req, res) => {
     }
 
     const existingLike = await Like.findOne({
-      blog: blogId,
-      user: req.user._id,
+      blog: blog._id,
+      guestToken: req.guestToken,
     });
 
+    /*
+     * UNLIKE
+     */
     if (existingLike) {
       await Like.deleteOne({
         _id: existingLike._id,
       });
 
       await Blog.updateOne(
-        { _id: blogId },
+        { _id: blog._id },
         {
           $inc: {
             likesCount: -1,
@@ -33,20 +55,33 @@ export const toggleLike = async (req, res) => {
         }
       );
 
+      const updatedBlog = await Blog.findById(blog._id)
+        .select("likesCount")
+        .lean();
+
       return res.json({
         success: true,
-        liked: false,
-        message: "Blog unliked",
+        message: "Like removed successfully",
+        data: {
+          liked: false,
+          likesCount: Math.max(
+            updatedBlog?.likesCount ?? 0,
+            0
+          ),
+        },
       });
     }
 
+    /*
+     * LIKE
+     */
     await Like.create({
-      blog: blogId,
-      user: req.user._id,
+      blog: blog._id,
+      guestToken: req.guestToken,
     });
 
     await Blog.updateOne(
-      { _id: blogId },
+      { _id: blog._id },
       {
         $inc: {
           likesCount: 1,
@@ -54,15 +89,22 @@ export const toggleLike = async (req, res) => {
       }
     );
 
-    res.json({
+    const updatedBlog = await Blog.findById(blog._id)
+      .select("likesCount")
+      .lean();
+
+    return res.json({
       success: true,
-      liked: true,
-      message: "Blog liked",
+      message: "Blog liked successfully",
+      data: {
+        liked: true,
+        likesCount: updatedBlog?.likesCount ?? 1,
+      },
     });
   } catch (error) {
-    console.error(error);
+    console.error("TOGGLE LIKE ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to update like",
     });

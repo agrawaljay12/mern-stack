@@ -6,34 +6,34 @@ import axios, {
 } from "axios";
 
 import env from "./env";
+
 import authHelper from "../../utils/auth";
 
-const blogApi: AxiosInstance = axios.create({
-  baseURL: env.apiBaseUrl,
-  timeout: 30_000,
+const blogApi: AxiosInstance =
+  axios.create({
+    baseURL:
+      env.apiBaseUrl,
 
-  headers: {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  },
+    timeout: 30_000,
 
-  withCredentials: false,
-});
+    headers: {
+      Accept:
+        "application/json",
 
-/**
- * Request interceptor
- *
- * Blog API supports two identities:
- *
- * 1. Admin
- *    Authorization: Bearer <JWT>
- *
- * 2. Guest visitor
- *    X-Guest-Token: <guest-token>
- */
+      "Content-Type":
+        "application/json",
+    },
+
+    withCredentials: false,
+  });
+
+/* =========================================================
+   REQUEST
+========================================================= */
+
 blogApi.interceptors.request.use(
   (
-    config: InternalAxiosRequestConfig,
+    config: InternalAxiosRequestConfig
   ) => {
     const accessToken =
       authHelper.getAccessToken();
@@ -41,107 +41,130 @@ blogApi.interceptors.request.use(
     const guestToken =
       authHelper.getGuestToken();
 
-    /**
-     * Authenticated admin
+    /*
+     * ADMIN
      */
+
     if (accessToken) {
       config.headers.set(
         "Authorization",
-        `Bearer ${accessToken}`,
+        `Bearer ${accessToken}`
       );
 
       config.headers.delete(
-        "X-Guest-Token",
+        "X-Guest-Token"
       );
     }
 
-    /**
-     * Anonymous visitor
+    /*
+     * GUEST
      */
+
     else if (guestToken) {
       config.headers.set(
         "X-Guest-Token",
-        guestToken,
+        guestToken
       );
     }
 
-    /**
-     * Let the browser/Axios automatically
-     * create the multipart boundary when
-     * FormData is used.
+    /*
+     * FormData
      */
-    if (config.data instanceof FormData) {
+
+    if (
+      config.data instanceof
+      FormData
+    ) {
       config.headers.delete(
-        "Content-Type",
+        "Content-Type"
       );
     }
 
     return config;
   },
 
-  (error) => {
-    return Promise.reject(error);
-  },
+  (error) =>
+    Promise.reject(error)
 );
 
-/**
- * Save guest token returned by backend.
- */
-const captureGuestToken = (
-  headers: unknown,
-): void => {
-  if (
-    !headers ||
-    typeof headers !== "object"
-  ) {
-    return;
-  }
+/* =========================================================
+   CAPTURE GUEST TOKEN
+========================================================= */
 
-  const responseHeaders =
-    headers as Record<string, string>;
+const captureGuestToken =
+  (
+    headers: unknown
+  ): void => {
+    if (
+      !headers ||
+      typeof headers !==
+        "object"
+    ) {
+      return;
+    }
 
-  const guestToken =
-    responseHeaders["x-guest-token"];
+    const responseHeaders =
+      headers as Record<
+        string,
+        string
+      >;
 
-  if (guestToken) {
-    authHelper.setGuestToken(
-      guestToken,
-    );
-  }
-};
+    const guestToken =
+      responseHeaders[
+        "x-guest-token"
+      ];
 
-/**
- * Response interceptor
- */
+    if (guestToken) {
+      authHelper.setGuestToken(
+        guestToken
+      );
+    }
+  };
+
+/* =========================================================
+   RESPONSE
+========================================================= */
+
 blogApi.interceptors.response.use(
-  (response: AxiosResponse) => {
+  (
+    response: AxiosResponse
+  ) => {
     captureGuestToken(
-      response.headers,
+      response.headers
     );
 
     return response;
   },
 
-  async (error: AxiosError) => {
-    /**
-     * Guest token can also be returned
-     * on an error response.
-     */
-    if (error.response?.headers) {
+  async (
+    error: AxiosError
+  ) => {
+    if (
+      error.response?.headers
+    ) {
       captureGuestToken(
-        error.response.headers,
+        error.response
+          .headers
       );
     }
 
-    /**
-     * Existing JWT authentication behavior.
+    /*
+     * Only clear JWT authentication
+     * for actual authenticated requests.
      */
-    if (error.response?.status === 401) {
+
+    if (
+      error.response
+        ?.status === 401 &&
+      authHelper.getAccessToken()
+    ) {
       authHelper.clearAuth();
     }
 
-    return Promise.reject(error);
-  },
+    return Promise.reject(
+      error
+    );
+  }
 );
 
 export default blogApi;

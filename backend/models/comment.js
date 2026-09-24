@@ -9,10 +9,11 @@ const commentSchema = new mongoose.Schema(
       index: true,
     },
 
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+    name: {
+      type: String,
       required: true,
+      trim: true,
+      maxlength: 50,
     },
 
     text: {
@@ -21,9 +22,16 @@ const commentSchema = new mongoose.Schema(
       trim: true,
       maxlength: 1000,
     },
+
+    guestToken: {
+      type: String,
+      required: true,
+      index: true,
+    },
   },
   {
     timestamps: true,
+    versionKey: false,
   }
 );
 
