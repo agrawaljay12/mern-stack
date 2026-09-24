@@ -1,4 +1,4 @@
-import type { LoginData } from "../../features/auth/types/auth";
+import type { LoginData, User } from "../types/auth";
 
 const ACCESS_TOKEN_KEY = "access_token";
 const REFRESH_TOKEN_KEY = "refresh_token";
@@ -7,20 +7,9 @@ const GUEST_TOKEN_KEY = "guest_token";
 
 const authHelper = {
   setAuth(auth: LoginData): void {
-    localStorage.setItem(
-      ACCESS_TOKEN_KEY,
-      auth.access_token
-    );
-
-    localStorage.setItem(
-      REFRESH_TOKEN_KEY,
-      auth.refresh_token
-    );
-
-    localStorage.setItem(
-      USER_KEY,
-      JSON.stringify(auth.user)
-    );
+    localStorage.setItem(ACCESS_TOKEN_KEY, auth.access_token);
+    localStorage.setItem(REFRESH_TOKEN_KEY, auth.refresh_token);
+    localStorage.setItem(USER_KEY, JSON.stringify(auth.user));
   },
 
   getAccessToken(): string | null {
@@ -31,7 +20,7 @@ const authHelper = {
     return localStorage.getItem(REFRESH_TOKEN_KEY);
   },
 
-  getUser() {
+  getUser(): User | null {
     const user = localStorage.getItem(USER_KEY);
 
     if (!user) {
@@ -39,7 +28,7 @@ const authHelper = {
     }
 
     try {
-      return JSON.parse(user);
+      return JSON.parse(user) as User;
     } catch {
       localStorage.removeItem(USER_KEY);
       return null;
@@ -55,12 +44,6 @@ const authHelper = {
     localStorage.removeItem(REFRESH_TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
   },
-
-  // ---------------------------------------------------------------
-  // Guest identity (X-Guest-Token). Independent of the access/refresh
-  // token lifecycle above — see server.py / get_identity.py for the
-  // backend side of this contract.
-  // ---------------------------------------------------------------
 
   getGuestToken(): string | null {
     return localStorage.getItem(GUEST_TOKEN_KEY);

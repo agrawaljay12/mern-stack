@@ -4,21 +4,21 @@ import {
   Route,
 } from "react-router-dom";
 
-
 // ================================
 // Public Pages
 // ================================
 
 import Home from "./pages/blogdetail";
 import BlogDetails from "./pages/blogdetail";
-import Login from "";
+
+import Login from "./pages/auth/login";
 
 
 // ================================
 // Admin Pages
 // ================================
 
-import Dashboard from "./";
+import Dashboard from "./pages/admin/dashboard";
 import AdminBlogs from "./pages/admin/adminblog";
 import CreateBlog from "./pages/admin/createblog";
 import EditBlog from "./pages/admin/editblog";
@@ -113,7 +113,7 @@ const App = () => {
                 element={<EditBlog />}
               />
 
-              {/* Profile */}
+              {/* Admin Profile */}
 
               <Route
                 path="/admin/profile"

@@ -9,6 +9,7 @@ export interface User {
   id: number;
   name: string;
   email: string;
+  age?: number;
   role: UserRole;
 }
 
@@ -37,4 +38,40 @@ export interface RefreshTokenResponse {
     refresh_token?: string;
     token_type: string;
   };
+}
+
+/* =========================================
+   ADMIN PROFILE
+========================================= */
+
+export interface AdminProfile {
+  id: number;
+  name: string;
+  email: string;
+  age?: number;
+  role: "admin";
+}
+
+export interface ProfileResponse {
+  status: number;
+  message: string;
+  data: AdminProfile;
+}
+
+export interface UpdateProfileRequest {
+  name: string;
+  email: string;
+  age?: number;
+}
+
+export interface UpdateProfileResponse {
+  status: number;
+  message: string;
+  data: AdminProfile;
+}
+
+export interface DeleteProfileResponse {
+  status: number;
+  message: string;
+  data: null;
 }

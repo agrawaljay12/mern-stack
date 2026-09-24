@@ -1,6 +1,6 @@
 import express from 'express';
 const router = express.Router();
-import  User from '../../../models/user.js';
+// import  User from '../../../models/user.js';
 import {handleGetAllUsers ,handleDeleteUserById ,handleCreateUser ,handleUpdateUserById ,handleGetUserById, handlelogin} from '../../../controller/user.js';
 import {get_required_roles} from "../../../middleware/dependency.js";
 import { verifytoken } from '../../../middleware/auth.js';
@@ -13,7 +13,7 @@ router.get('/fetch_all', verifytoken,get_required_roles(["admin"]),handleGetAllU
 // URL:http://localhost:8000/api/v1/auth/delete/:id
 // Method:delete
 // description: delete user by id
-router.delete('/delete/:id',handleDeleteUserById);
+// router.delete('/delete/:id',handleDeleteUserById);
 
 // URL:http://localhost:8000/api/v1/auth/create
 // Method:post
@@ -28,11 +28,39 @@ router.post('/login', handlelogin);
 // URL:http://localhost:8000/api/v1/auth/update/:id
 // Method:put
 // description: update the user by id
-router.put('/update/:id',handleUpdateUserById);
-
+// router.put('/update/:id',handleUpdateUserById);
 // URL:http://localhost:8000/api/v1/auth/fetch/:id
 // Method:get   
 // description:fetch the user by id
-router.get('/fetch/:id',handleGetUserById);
+// router.get('/fetch/:id',handleGetUserById);
+
+router.get(
+  "/fetch_all",
+  verifytoken,
+  get_required_roles(["admin"]),
+  handleGetAllUsers
+);
+
+router.delete(
+  "/delete/:id",
+  verifytoken,
+  get_required_roles(["admin"]),
+  handleDeleteUserById
+);
+
+router.put(
+  "/update/:id",
+  verifytoken,
+  get_required_roles(["admin"]),
+  handleUpdateUserById
+);
+
+router.get(
+  "/fetch/:id",
+  verifytoken,
+  get_required_roles(["admin"]),
+  handleGetUserById
+);
+
 
 export default router;
