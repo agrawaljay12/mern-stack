@@ -90,7 +90,7 @@ export const deleteProfile = async (
 ) => {
   const response =
     await apiClient.delete<DeleteProfileResponse>(
-      `/users/delete/${userId}`
+      `/auth/delete/${userId}`
     );
 
   return response.data;

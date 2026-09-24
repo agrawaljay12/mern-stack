@@ -1,173 +1,48 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-} from "react-router-dom";
-
-/* Public */
-
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/home";
-
 import BlogDetails from "./pages/blogdetail";
-
 import Login from "./pages/auth/login";
-
-/* Admin */
-
 import Dashboard from "./pages/admin/dashboard";
-
 import AdminBlogs from "./pages/admin/adminblog";
-
 import CreateBlog from "./pages/admin/createblog";
-
 import EditBlog from "./pages/admin/editblog";
-
 import Profile from "./pages/admin/profile";
-
-/* Layout */
-
+// import ChangePassword from "";
+// import AdminComments from "./pages/admin/comments";
 import AdminLayout from "./layout/adminlayout";
-
-/* Protection */
-
 import ProtectedRoute from "./router/protected";
-
 import RoleRoute from "./router/roleroute";
 
-const App = () => {
-  return (
-    <BrowserRouter>
+const NotFound = () => (
+  <div className="flex min-h-screen items-center justify-center bg-gray-50">
+    <div className="text-center"><h1 className="text-5xl font-bold text-gray-900">404</h1><p className="mt-2 text-gray-500">Page not found</p><a href="/" className="mt-5 inline-block rounded-lg bg-blue-600 px-5 py-2.5 font-medium text-white">Go Home</a></div>
+  </div>
+);
 
-      <Routes>
+const App = () => (
+  <BrowserRouter>
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/blogs/:slug" element={<BlogDetails />} />
+      <Route path="/login" element={<Login />} />
 
-        {/* =================================================
-            PUBLIC
-        ================================================= */}
-
-        <Route
-          path="/"
-          element={
-            <Home />
-          }
-        />
-
-        <Route
-          path="/blogs/:slug"
-          element={
-            <BlogDetails />
-          }
-        />
-
-        <Route
-          path="/login"
-          element={
-            <Login />
-          }
-        />
-
-        {/* =================================================
-            ADMIN
-        ================================================= */}
-
-        <Route
-          element={
-            <ProtectedRoute />
-          }
-        >
-
-          <Route
-            element={
-              <RoleRoute
-                allowedRoles={[
-                  "admin",
-                ]}
-              />
-            }
-          >
-
-            <Route
-              element={
-                <AdminLayout />
-              }
-            >
-
-              <Route
-                path="/admin"
-                element={
-                  <Dashboard />
-                }
-              />
-
-              <Route
-                path="/admin/blogs"
-                element={
-                  <AdminBlogs />
-                }
-              />
-
-              <Route
-                path="/admin/blogs/create"
-                element={
-                  <CreateBlog />
-                }
-              />
-
-              <Route
-                path="/admin/blogs/:id/edit"
-                element={
-                  <EditBlog />
-                }
-              />
-
-              <Route
-                path="/admin/profile"
-                element={
-                  <Profile />
-                }
-              />
-
-            </Route>
-
+      <Route element={<ProtectedRoute />}>
+        <Route element={<RoleRoute allowedRoles={["admin"]} />}>
+          <Route element={<AdminLayout />}>
+            <Route path="/admin" element={<Dashboard />} />
+            <Route path="/admin/blogs" element={<AdminBlogs />} />
+            <Route path="/admin/blogs/create" element={<CreateBlog />} />
+            <Route path="/admin/blogs/:id/edit" element={<EditBlog />} />
+            {/* <Route path="/admin/comments" element={<AdminComments />} /> */}
+            <Route path="/admin/profile" element={<Profile />} />
+            {/* <Route path="/admin/change-password" element={<ChangePassword />} /> */}
           </Route>
-
         </Route>
+      </Route>
 
-        {/* =================================================
-            404
-        ================================================= */}
-
-        <Route
-          path="*"
-          element={
-            <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-
-              <div className="text-center">
-
-                <h1 className="text-6xl font-black text-slate-900">
-                  404
-                </h1>
-
-                <p className="mt-3 text-slate-500">
-                  Page not found.
-                </p>
-
-                <a
-                  href="/"
-                  className="mt-6 inline-block rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white"
-                >
-                  Back home
-                </a>
-
-              </div>
-
-            </div>
-          }
-        />
-
-      </Routes>
-
-    </BrowserRouter>
-  );
-};
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  </BrowserRouter>
+);
 
 export default App;

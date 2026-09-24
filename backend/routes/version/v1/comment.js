@@ -1,26 +1,12 @@
 import express from "express";
-
-import {
-  addComment,
-  deleteComment,
-} from "../../../controller/comment_controller.js";
-
-import guestIdentity from "../../../middleware/guest.js";
-import { optionalAuth } from "../../../middleware/dependency.js";
+import { addComment, deleteComment, getAllComments } from "../../../controller/comment_controller.js";
+import { optionalAuth, verifytoken } from "../../../middleware/auth.js";
+import { ensureGuestToken, get_required_roles } from "../../../middleware/dependency.js";
 
 const router = express.Router();
 
-router.post(
-  "/:blogId",
-  guestIdentity,
-  addComment
-);
-
-router.delete(
-  "/:commentId",
-  guestIdentity,
-  optionalAuth,
-  deleteComment
-);
+router.get("/admin/all", verifytoken, get_required_roles(["admin"]), getAllComments);
+router.post("/:blogId", optionalAuth, ensureGuestToken, addComment);
+router.delete("/:commentId", optionalAuth, ensureGuestToken, deleteComment);
 
 export default router;

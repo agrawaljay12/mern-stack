@@ -8,31 +8,29 @@ const commentSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    guestToken: {
+      type: String,
+      default: null,
+      index: true,
+    },
     name: {
       type: String,
-      required: true,
       trim: true,
       maxlength: 50,
     },
-
     text: {
       type: String,
       required: true,
       trim: true,
       maxlength: 1000,
     },
-
-    guestToken: {
-      type: String,
-      required: true,
-      index: true,
-    },
   },
-  {
-    timestamps: true,
-    versionKey: false,
-  }
+  { timestamps: true }
 );
 
 export default mongoose.model("Comment", commentSchema);

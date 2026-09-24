@@ -1,4 +1,4 @@
-import user from '../models/user.js';
+import User from '../models/user.js';
 import bcrypt from "bcrypt";
 import {create_token,refresh_token} from "../middleware/auth.js"
 
@@ -6,7 +6,7 @@ import {create_token,refresh_token} from "../middleware/auth.js"
 // get all users
 const handleGetAllUsers = async (req, res) => {
     try {
-        const users = await user.find({});
+        const users = await User.find({});
 
         return res.status(200).json({
             message:"all users fetched",
@@ -25,16 +25,32 @@ const handleDeleteUserById = async(req,res) =>{
         if (!id){
             return res.status(400).json({error:"User Id is required"});
         }
-        const existuser = await user.findOne({"_id":id});
-
-        if(!existuser){
-           return res.status(400).json({error:"User is not found"});
+        if (req.user?.id !== id) {
+            return res.status(403).json({ success: false, error: "You can only delete your own account" });
         }
 
-        const result  = await user.findByIdAndDelete(id);
+        const existuser = await User.findById(id);
+
+        if(!existuser){
+           return res.status(404).json({success: false, error:"User is not found"});
+        }
+
+        const result  = await User.findByIdAndDelete(id);
+
+        const Blog = (await import("../models/blog.js")).default;
+        const Comment = (await import("../models/comment.js")).default;
+        const Like = (await import("../models/like.js")).default;
+        const blogs = await Blog.find({ author: id }).select("_id");
+        const blogIds = blogs.map((blog) => blog._id);
+        await Promise.all([
+          Comment.deleteMany({ $or: [{ user: id }, { blog: { $in: blogIds } }] }),
+          Like.deleteMany({ $or: [{ user: id }, { blog: { $in: blogIds } }] }),
+          Blog.deleteMany({ author: id }),
+        ]);
 
         return res.json({
-            message: "User deleted successfully", 
+            success: true,
+            message: "User deleted successfully",
             data:result
         });
     }
@@ -54,7 +70,7 @@ const handleCreateUser = async (req,res)=>{
         }   
 
         // check the already email exist or not
-        const exist_user = await user.findOne({"email":body.email});
+        const exist_user = await User.findOne({"email":body.email});
         
         // check the user email already exist or not if exist raise error
         if (exist_user){
@@ -64,7 +80,7 @@ const handleCreateUser = async (req,res)=>{
         // store the plain password in password hashing
         const hash_password = await bcrypt.hash(body.password,10);
 
-        const result = await user.create({
+        const result = await User.create({
             name: body.name,
             email: body.email,
             age: body.age,
@@ -95,7 +111,7 @@ const handlelogin = async (req,res)=>{
         }
 
         // check the exist user or not  
-        const existuser = await user.findOne({"email":email});
+        const existuser = await User.findOne({"email":email});
 
         // if user is not found
         if(!existuser){
@@ -152,7 +168,7 @@ const handleUpdateUserById = async (req, res) => {
       });
     }
 
-    const existuser = await user.findById(id);
+    const existuser = await User.findById(id);
 
     if (!existuser) {
       return res.status(404).json({
@@ -160,7 +176,7 @@ const handleUpdateUserById = async (req, res) => {
       });
     }
 
-    const result = await user.findByIdAndUpdate(
+    const result = await User.findByIdAndUpdate(
       id,
       {
         name: body.name,
@@ -201,7 +217,7 @@ const handleGetUserById = async (req,res) =>{
              return res.status(400).json({error:"User Id is required"});
         }
 
-        const result  = await user.findById({_id:id}); 
+        const result  = await User.findById({_id:id}); 
 
         if (!result) {
             return res.status(404).json({ error: "User not found" });
@@ -224,19 +240,19 @@ const handleGetUserById = async (req,res) =>{
                 return res.status(400).json({"error":"all fields are required"});
             }
 
-            const existuser = await user.findOne({"email":email});
+            const existuser = await User.findOne({"email":email});
 
             if(!existuser){
                 return res.status(404).json({error:"User not found"});
             }       
             
-            if(!password === !confirm_password){
+            if(password !== confirm_password){
                 return res.status(400).json({error:"password and confirm password is not match"});
             }
 
             const hash_password = await bcrypt.hash(password,10);
 
-            result =  await user.findByIdAndUpdate(email,{password:hash_password});  
+            result = await User.findOneAndUpdate({email},{password:hash_password},{new:true});  
 
             if(!result){
                 return res.status(400).json({"error":"Password is not changed"})
@@ -305,12 +321,12 @@ const handleGetUserById = async (req,res) =>{
        * Get user with password.
        */
 
-      const user =
+      const account =
         await User.findById(
           req.user.id
         );
 
-      if (!user) {
+      if (!account) {
         return res.status(404).json({
           success: false,
           message:
@@ -325,7 +341,7 @@ const handleGetUserById = async (req,res) =>{
       const passwordMatches =
         await bcrypt.compare(
           currentPassword,
-          user.password
+          account.password
         );
 
       if (!passwordMatches) {
@@ -343,7 +359,7 @@ const handleGetUserById = async (req,res) =>{
       const samePassword =
         await bcrypt.compare(
           newPassword,
-          user.password
+          account.password
         );
 
       if (samePassword) {
@@ -368,10 +384,10 @@ const handleGetUserById = async (req,res) =>{
        * Save password.
        */
 
-      user.password =
+      account.password =
         hashedPassword;
 
-      await user.save();
+      await account.save();
 
       return res.status(200).json({
         success: true,

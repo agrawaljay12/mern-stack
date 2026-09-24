@@ -1,47 +1,15 @@
-import crypto from "crypto";
+import express from "express";
+const app = express();
+import router from "../routes/index.js"
+import cors from "cors";
 
-const guestIdentity = (
-  req,
-  res,
-  next
-) => {
-  try {
-    let guestToken =
-      req.headers["x-guest-token"];
+//middleware 
+app.use(cors({ exposedHeaders: ["X-Guest-Token"] }));
+app.use(express.urlencoded({extended:true}));
+app.use(express.json());
+// app.use(morgan("dev"))
 
-    /*
-     * If this is a visitor without a token,
-     * create one.
-     */
-    if (
-      !guestToken ||
-      typeof guestToken !== "string"
-    ) {
-      guestToken =
-        crypto.randomUUID();
+// register routes of application
+router(app);
 
-      res.setHeader(
-        "X-Guest-Token",
-        guestToken
-      );
-    }
-
-    req.guestToken =
-      guestToken;
-
-    next();
-  } catch (error) {
-    console.error(
-      "GUEST IDENTITY ERROR:",
-      error
-    );
-
-    return res.status(500).json({
-      success: false,
-      message:
-        "Failed to create guest identity",
-    });
-  }
-};
-
-export default guestIdentity;
+export default app;
