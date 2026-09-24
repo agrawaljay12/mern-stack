@@ -1,12 +1,40 @@
-export interface User {
-  _id: string;
-  name: string;
+export type UserRole = "admin" | "user";
+
+export interface LoginRequest {
   email: string;
-  role: "admin" | "user";
+  password: string;
 }
 
-export interface AuthResponse {
-  success: boolean;
-  token: string;
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface LoginData {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
   user: User;
+}
+
+export interface LoginResponse {
+  status: number;
+  message: string;
+  data: LoginData;
+}
+
+export interface RefreshTokenRequest {
+  refresh_token: string;
+}
+
+export interface RefreshTokenResponse {
+  status: number;
+  message: string;
+  data: {
+    access_token: string;
+    refresh_token?: string;
+    token_type: string;
+  };
 }
