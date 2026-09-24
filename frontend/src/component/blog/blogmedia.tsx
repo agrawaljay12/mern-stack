@@ -1,15 +1,28 @@
-const BlogMedia = ({ media }) => {
-  if (!media?.url || media.type === "none") {
+import type { BlogMedia as BlogMediaType } from "../../types/blog";
+
+interface BlogMediaProps {
+  media: BlogMediaType;
+  className?: string;
+}
+
+const BlogMedia = ({
+  media,
+  className = "",
+}: BlogMediaProps) => {
+  if (!media || media.type === "none" || !media.url) {
     return null;
   }
 
-  if (media.type === "image" || media.type === "gif") {
+  if (
+    media.type === "image" ||
+    media.type === "gif"
+  ) {
     return (
       <img
         src={media.url}
         alt=""
-        className="w-full rounded-2xl object-cover"
         loading="lazy"
+        className={`w-full object-cover ${className}`}
       />
     );
   }
@@ -21,7 +34,7 @@ const BlogMedia = ({ media }) => {
         poster={media.thumbnail || undefined}
         controls
         preload="metadata"
-        className="w-full rounded-2xl"
+        className={`w-full ${className}`}
       />
     );
   }
@@ -32,7 +45,7 @@ const BlogMedia = ({ media }) => {
         href={media.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="block rounded-xl border border-slate-200 p-4 text-blue-600 hover:bg-slate-50"
+        className="block rounded-xl border border-slate-200 p-4 text-blue-600 transition hover:bg-slate-50"
       >
         Open external resource →
       </a>

@@ -1,57 +1,43 @@
-import Blog from "../models/Blog.js";
-import Comment from "../models/Comment.js";
+import Blog from "../models/blog.js";
+import Comment from "../models/comment.js";
 
 export const addComment = async (req, res) => {
   try {
     const { blogId } = req.params;
-    const { text } = req.body;
+    const { name, text } = req.body;
 
-    if (!text?.trim()) {
-      return res.status(400).json({
+    const guestToken = req.headers["x-guest-token"];
+
+    if (!guestToken) {
+      return res.status(401).json({
         success: false,
-        message: "Comment cannot be empty",
+        message: "Guest token is required",
       });
     }
 
-    const blog = await Blog.findById(blogId);
-
-    if (!blog) {
-      return res.status(404).json({
+    if (!name || !text) {
+      return res.status(400).json({
         success: false,
-        message: "Blog not found",
+        message: "Name and comment are required",
       });
     }
 
     const comment = await Comment.create({
       blog: blogId,
-      user: req.user._id,
-      text: text.trim(),
+      guestToken,
+      name,
+      text,
     });
 
-    await Blog.updateOne(
-      { _id: blogId },
-      {
-        $inc: {
-          commentsCount: 1,
-        },
-      }
-    );
-
-    const populatedComment = await Comment.findById(
-      comment._id
-    )
-      .populate("user", "name")
-      .lean();
-
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
-      message: "Comment added",
-      data: populatedComment,
+      message: "Comment added successfully",
+      data: comment,
     });
   } catch (error) {
     console.error(error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to add comment",
     });
@@ -60,9 +46,9 @@ export const addComment = async (req, res) => {
 
 export const deleteComment = async (req, res) => {
   try {
-    const comment = await Comment.findById(
-      req.params.commentId
-    );
+    const { commentId } = req.params;
+
+    const comment = await Comment.findById(commentId);
 
     if (!comment) {
       return res.status(404).json({
@@ -71,39 +57,51 @@ export const deleteComment = async (req, res) => {
       });
     }
 
-    const isOwner =
-      comment.user.toString() === req.user._id.toString();
+    // --------------------------------
+    // ADMIN
+    // --------------------------------
 
-    const isAdmin = req.user.role === "admin";
+    if (req.user && req.user.role === "admin") {
+      await Comment.findByIdAndDelete(commentId);
 
-    if (!isOwner && !isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: "You cannot delete this comment",
+      return res.status(200).json({
+        success: true,
+        message: "Comment deleted successfully",
+        data: null,
       });
     }
 
-    await Comment.deleteOne({
-      _id: comment._id,
-    });
+    // --------------------------------
+    // GUEST
+    // --------------------------------
 
-    await Blog.updateOne(
-      { _id: comment.blog },
-      {
-        $inc: {
-          commentsCount: -1,
-        },
-      }
-    );
+    const guestToken = req.headers["x-guest-token"];
 
-    res.json({
+    if (!guestToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Guest token is required",
+      });
+    }
+
+    if (comment.guestToken !== guestToken) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only delete your own comment",
+      });
+    }
+
+    await Comment.findByIdAndDelete(commentId);
+
+    return res.status(200).json({
       success: true,
-      message: "Comment deleted",
+      message: "Comment deleted successfully",
+      data: null,
     });
   } catch (error) {
-    console.error(error);
+    console.error("Delete comment error:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to delete comment",
     });

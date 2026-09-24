@@ -2,7 +2,7 @@ import express from 'express';
 const router = express.Router();
 import  User from '../../../models/user.js';
 import {handleGetAllUsers ,handleDeleteUserById ,handleCreateUser ,handleUpdateUserById ,handleGetUserById, handlelogin} from '../../../controller/user.js';
-import get_required_roles from "../../../middleware/dependency.js";
+import {get_required_roles} from "../../../middleware/dependency.js";
 import { verifytoken } from '../../../middleware/auth.js';
 
 // URL:http://localhost:8000/api/v1/auth/fetch_all

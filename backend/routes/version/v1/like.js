@@ -1,13 +1,12 @@
 import express from "express";
 
-import { toggleLike } from "../controllers/like.controller.js";
-import { protect } from "../middleware/auth.middleware.js";
+import { toggleLike } from "../../../controller/like_controller.js";
+// import { protect } from "../../../middleware/dependency.js";
 
 const router = express.Router();
 
 router.post(
   "/:blogId",
-  protect,
   toggleLike
 );
 

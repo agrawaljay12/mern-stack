@@ -1,22 +1,49 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import {Home} from "./pages/Home";
-// import { About } from "./pages/About";
-// import { Contact } from "./pages/Contact";
-// import { Projects } from "./pages/Project";
-// import { TechnicalSkills } from "./pages/TechnicalSkills";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+} from "react-router-dom";
 
-function App() {
+import Home from "./pages/blogdetail";
+import BlogDetails from "./pages/blogdetail";
+
+import AdminBlogs from "./pages/admin/adminblog";
+import CreateBlog from "./pages/admin/createblog";
+import EditBlog from "./pages/admin/editblog";
+
+const App = () => {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
-        {/* <Route path="/about" element={<About />} />
-        <Route path="/project" element={<Projects />} />
-        <Route path="/contact" element={<Contact/>} />
-        <Route path="/skills" element={<TechnicalSkills/>} />
-      </Routes> */}
+        {/* Public */}
+        <Route
+          path="/"
+          element={<Home />}
+        />
+
+        <Route
+          path="/blogs/:slug"
+          element={<BlogDetails />}
+        />
+
+        {/* Admin */}
+        <Route
+          path="/admin/blogs"
+          element={<AdminBlogs />}
+        />
+
+        <Route
+          path="/admin/blogs/create"
+          element={<CreateBlog />}
+        />
+
+        <Route
+          path="/admin/blogs/:id/edit"
+          element={<EditBlog />}
+        />
+      </Routes>
     </BrowserRouter>
   );
-}
+};
 
 export default App;

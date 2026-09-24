@@ -1,4 +1,5 @@
 import { error } from "console";
+import jwt from "jsonwebtoken";
 
 const get_required_roles = (roles=[])=>{
     
@@ -25,4 +26,29 @@ const get_required_roles = (roles=[])=>{
     } 
     return check_role;
 }
-export default get_required_roles;
+
+const optionalAuth = (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (
+      authHeader &&
+      authHeader.startsWith("Bearer ")
+    ) {
+      const token = authHeader.split(" ")[1];
+
+      const decodedToken = jwt.verify(
+        token,
+        process.env.JWT_SECRET_KEY
+      );
+
+      req.user = decodedToken;
+    }
+
+    next();
+  } catch (error) {
+    // Invalid JWT means treat request as guest
+    next();
+  }
+};
+export {get_required_roles,optionalAuth};

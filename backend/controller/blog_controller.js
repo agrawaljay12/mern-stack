@@ -1,7 +1,7 @@
 import Blog from "../models/blog.js";
 import Comment from "../models/comment.js";
 import Like from "../models/like.js";
-import { slugify } from "../utils/slugify.js";
+import { slugify } from "../utility/slugify.js";
 
 const generateUniqueSlug = async (title, blogId = null) => {
   const baseSlug = slugify(title);

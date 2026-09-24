@@ -3,21 +3,21 @@ import express from "express";
 import {
   addComment,
   deleteComment,
-} from "../controllers/comment.controller.js";
+} from "../../../controller/comment_controller.js";
 
-import { protect } from "../middleware/auth.middleware.js";
+// import { protect } from "../../../middleware/auth.js";
+import { optionalAuth } from "../../../middleware/dependency.js";
 
 const router = express.Router();
 
 router.post(
   "/:blogId",
-  protect,
   addComment
 );
 
 router.delete(
   "/:commentId",
-  protect,
+  optionalAuth,
   deleteComment
 );
 

@@ -1,5 +1,4 @@
 import express from "express";
-
 import {
   createBlog,
   getBlogs,
@@ -7,10 +6,10 @@ import {
   getAdminBlogs,
   updateBlog,
   deleteBlog,
-} from "../controllers/blog.controller.js";
-
-import { protect } from "../middleware/auth.middleware.js";
-import { adminOnly } from "../middleware/admin.middleware.js";
+} from "../../../controller/blog_controller.js";
+import {verifytoken} from "../../../middleware/auth.js";
+import {get_required_roles} from "../../../middleware/dependency.js";
+const adminOnly = get_required_roles(["admin"]);
 
 const router = express.Router();
 
@@ -27,7 +26,7 @@ router.get("/", getBlogs);
 // Admin
 router.get(
   "/admin/all",
-  protect,
+  verifytoken,
   adminOnly,
   getAdminBlogs
 );
@@ -37,7 +36,7 @@ router.get(
 // description:fetch all user
 router.post(
   "/",
-  protect,
+  verifytoken,
   adminOnly,
   createBlog
 );
@@ -47,7 +46,7 @@ router.post(
 // description:fetch all user
 router.put(
   "/admin/:id",
-  protect,
+  verifytoken,
   adminOnly,
   updateBlog
 );
@@ -57,7 +56,7 @@ router.put(
 // description:DELETE BLOG
 router.delete(
   "/delete/:id",
-  protect,
+  verifytoken,
   adminOnly,
   deleteBlog
 );
