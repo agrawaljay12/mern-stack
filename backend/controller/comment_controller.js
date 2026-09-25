@@ -1,29 +1,63 @@
+import mongoose from "mongoose";
 import Blog from "../models/blog.js";
 import Comment from "../models/comment.js";
 
-const serializeComment = (comment) => ({
-  ...comment,
-  name: comment.name || comment.user?.name || "Anonymous",
-});
+const serializeComment = (comment) => {
+  if (!comment) return null;
+
+  return {
+    ...comment,
+    name: comment.name || comment.user?.name || "Anonymous",
+  };
+};
+
+const getAuthenticatedUserId = (req) => {
+  const id = req.user?.id;
+  return id && mongoose.isValidObjectId(id) ? id : null;
+};
 
 export const addComment = async (req, res) => {
   try {
     const { blogId } = req.params;
-    const { name, text } = req.body;
+    const { name, text } = req.body || {};
+
+    if (!mongoose.isValidObjectId(blogId)) {
+      return res.status(400).json({ success: false, message: "Invalid blog id" });
+    }
 
     const blog = await Blog.findOne({ _id: blogId, published: true });
-    if (!blog) return res.status(404).json({ success: false, message: "Blog not found" });
+    if (!blog) {
+      return res.status(404).json({ success: false, message: "Blog not found" });
+    }
 
-    if (!text?.trim()) {
+    const cleanText = typeof text === "string" ? text.trim() : "";
+    const cleanName = typeof name === "string" ? name.trim() : "";
+
+    if (!cleanText) {
       return res.status(400).json({ success: false, message: "Comment is required" });
+    }
+
+    if (cleanText.length > 1000) {
+      return res.status(400).json({ success: false, message: "Comment is too long" });
+    }
+
+    const userId = getAuthenticatedUserId(req);
+    const guestToken = userId
+      ? null
+      : typeof req.guestToken === "string" && req.guestToken.trim()
+        ? req.guestToken.trim()
+        : null;
+
+    if (!userId && !guestToken) {
+      return res.status(400).json({ success: false, message: "Unable to identify visitor" });
     }
 
     const comment = await Comment.create({
       blog: blogId,
-      user: req.user?.id || null,
-      guestToken: req.user ? null : req.guestToken,
-      name: req.user?.name || name?.trim() || "Anonymous",
-      text: text.trim(),
+      user: userId,
+      guestToken,
+      name: userId ? req.user?.name || cleanName || "Anonymous" : cleanName || "Anonymous",
+      text: cleanText,
     });
 
     await Blog.updateOne({ _id: blogId }, { $inc: { commentsCount: 1 } });
@@ -39,7 +73,11 @@ export const addComment = async (req, res) => {
     });
   } catch (error) {
     console.error("Add comment error:", error);
-    return res.status(500).json({ success: false, message: "Failed to add comment" });
+    return res.status(500).json({
+      success: false,
+      message: "Failed to add comment",
+      error: process.env.NODE_ENV !== "production" ? error?.message : undefined,
+    });
   }
 };
 
@@ -64,8 +102,12 @@ export const getAllComments = async (_req, res) => {
 export const deleteComment = async (req, res) => {
   try {
     const { commentId } = req.params;
-    const comment = await Comment.findById(commentId);
 
+    if (!mongoose.isValidObjectId(commentId)) {
+      return res.status(400).json({ success: false, message: "Invalid comment id" });
+    }
+
+    const comment = await Comment.findById(commentId);
     if (!comment) {
       return res.status(404).json({ success: false, message: "Comment not found" });
     }

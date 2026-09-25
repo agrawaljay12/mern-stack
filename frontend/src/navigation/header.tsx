@@ -135,7 +135,7 @@ const AdminHeader = ({
                 </span>
               </button>
 
-              <button
+              {/* <button
                 type="button"
                 onClick={() => {
                   setOpen(false);
@@ -144,7 +144,7 @@ const AdminHeader = ({
                 className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
               >
                 <span>Change Password</span>
-              </button>
+              </button> */}
 
               {/* Logout */}
               <button

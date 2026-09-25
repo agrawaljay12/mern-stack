@@ -6,6 +6,7 @@ import BlogMedia from "../component/blog/blogmedia";
 import CommentForm from "../component/blog/commentform";
 import CommentList from "../component/blog/commentlist";
 import PublicHeader from "../navigation/publicheader";
+import ShareButton from "../component/blog/sharebutton";
 import authHelper from "../utils/auth";
 
 const BlogDetails = () => {
@@ -91,6 +92,7 @@ const BlogDetails = () => {
                 {blog.likedByUser ? "♥ Liked" : "♡ Like"} · {blog.likesCount}
               </button>
               <span className="text-sm text-slate-500">💬 {blog.commentsCount} comments</span>
+              <ShareButton title={blog.title} url={window.location.href} />
             </div>
           </div>
         </article>

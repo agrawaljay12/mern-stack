@@ -1,7 +1,7 @@
 import express from "express";
 import { addComment, deleteComment, getAllComments } from "../../../controller/comment_controller.js";
-import { optionalAuth, verifytoken } from "../../../middleware/auth.js";
-import { ensureGuestToken, get_required_roles } from "../../../middleware/dependency.js";
+import { verifytoken } from "../../../middleware/auth.js";
+import { optionalAuth, ensureGuestToken, get_required_roles } from "../../../middleware/dependency.js";
 
 const router = express.Router();
 

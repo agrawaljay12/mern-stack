@@ -7,8 +7,8 @@ import AdminBlogs from "./pages/admin/adminblog";
 import CreateBlog from "./pages/admin/createblog";
 import EditBlog from "./pages/admin/editblog";
 import Profile from "./pages/admin/profile";
-// import ChangePassword from "";
-// import AdminComments from "./pages/admin/comments";
+import ChangePassword from "./pages/admin/change-password";
+import AdminComments from "./pages/admin/comment";
 import AdminLayout from "./layout/adminlayout";
 import ProtectedRoute from "./router/protected";
 import RoleRoute from "./router/roleroute";
@@ -33,9 +33,9 @@ const App = () => (
             <Route path="/admin/blogs" element={<AdminBlogs />} />
             <Route path="/admin/blogs/create" element={<CreateBlog />} />
             <Route path="/admin/blogs/:id/edit" element={<EditBlog />} />
-            {/* <Route path="/admin/comments" element={<AdminComments />} /> */}
+            <Route path="/admin/comments" element={<AdminComments />} />
             <Route path="/admin/profile" element={<Profile />} />
-            {/* <Route path="/admin/change-password" element={<ChangePassword />} /> */}
+            <Route path="/admin/change-password" element={<ChangePassword />} />
           </Route>
         </Route>
       </Route>
