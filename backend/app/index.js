@@ -4,8 +4,15 @@ import router from "../routes/index.js"
 import cors from "cors";
 
 //middleware 
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://mern-stack-weld-nu.vercel.app",
+];
+
+
 app.use(cors({ 
-    origin: "https://mern-stack-weld-nu.vercel.app/",
+    origin: allowedOrigins,
     exposedHeaders: ["X-Guest-Token"]
  }));
 app.use(express.urlencoded({extended:true}));
