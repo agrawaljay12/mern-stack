@@ -4,7 +4,10 @@ import router from "../routes/index.js"
 import cors from "cors";
 
 //middleware 
-app.use(cors({ exposedHeaders: ["X-Guest-Token"] }));
+app.use(cors({ 
+    origin: "https://mern-stack-weld-nu.vercel.app/",
+    exposedHeaders: ["X-Guest-Token"]
+ }));
 app.use(express.urlencoded({extended:true}));
 app.use(express.json());
 // app.use(morgan("dev"))
